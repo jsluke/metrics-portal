@@ -33,6 +33,7 @@ import play.sbt.routes.RoutesKeys.routesGenerator
 import RjsKeys._
 import sbt._
 import Keys._
+import com.simplytyped.Antlr4Plugin._
 import play.sbt.PlayImport._
 import com.typesafe.sbt.packager.rpm._
 import com.typesafe.sbt.packager.rpm.RpmPlugin.autoImport._
@@ -49,7 +50,8 @@ object ApplicationBuild extends Build {
     val jacksonVersion = "2.9.2"
     val cassandraDriverVersion = "3.2.0"
 
-    val s = checkstyleSettings ++ aspectjSettings
+    val s = checkstyleSettings ++ aspectjSettings ++ antlr4Settings
+
 
     val appDependencies = Seq(
       javaWs,
@@ -88,6 +90,7 @@ object ApplicationBuild extends Build {
       "org.postgresql" % "postgresql" % "9.4-1206-jdbc42",
       "org.webjars" % "bean" % "1.0.14",
       "org.webjars" % "bootstrap" % "3.3.7",
+      "org.webjars.npm" % "bootstrap-daterangepicker" % "2.1.17",
       "org.webjars.npm" % "d3" % "4.11.0",
 
       // Needed as a transitive of d3, but we need v 1.0.1 as opposed to the default 1.0.0
@@ -101,6 +104,7 @@ object ApplicationBuild extends Build {
       "org.webjars" % "jquery-ui" % "1.12.1",
       "org.webjars" % "jquery-ui-themes" % "1.12.1",
       "org.webjars" % "knockout" % "3.4.0",
+      "org.webjars.npm" % "moment" % "2.18.1",
       "org.webjars" % "requirejs-text" % "2.0.10-1",
       "org.webjars" % "typeaheadjs" % "0.10.4-1",
       "org.webjars" % "underscorejs" % "1.8.3",
@@ -111,6 +115,9 @@ object ApplicationBuild extends Build {
     )
 
     val main = Project(appName, file("."), settings = s).enablePlugins(play.sbt.PlayJava, play.ebean.sbt.PlayEbean, RpmPlugin, SbtAspectj).settings(
+      antlr4PackageName in Antlr4 := Some("com.arpnetworking.mql.grammar"),
+      antlr4GenVisitor in Antlr4 := true,
+      antlr4Version in Antlr4 := "4.6",
 
       organization := "com.arpnetworking.metrics",
       organizationName := "Arpnetworking Inc",

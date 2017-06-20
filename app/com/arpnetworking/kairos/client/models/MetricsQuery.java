@@ -244,6 +244,17 @@ public final class MetricsQuery {
                 return this;
             }
 
+            /**
+             * Add an aggregator. Optional. Cannot be null.
+             *
+             * @param value the aggregator to add
+             * @return this {@link Builder}
+             */
+            public Builder addAggregator(final Aggregator value) {
+                _aggregators = ImmutableList.<Aggregator>builder().addAll(_aggregators).add(value).build();
+                return this;
+            }
+
             @NotNull
             @NotEmpty
             private String _name;

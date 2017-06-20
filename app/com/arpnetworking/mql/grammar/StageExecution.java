@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Groupon.com
+ * Copyright 2017 Smartsheet
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.arpnetworking.database.h2.triggers;
+package com.arpnetworking.mql.grammar;
 
-import models.ebean.AlertEtags;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 /**
- * Trigger to update Etag after every insert, delete or update statement.
+ * Stage execution model.
  *
- * @author Deepika Misra (deepika at groupon dot com)
+ * @author Brandon Arp (brandon dot arp at smartsheet dot com)
  */
-public class AlertsUpdateEtagTrigger extends BaseUpdateEtagTrigger {
+public interface StageExecution {
+    /**
+     * Execute the stage, producing a TimeSeriesResult.
+     *
+     * @return {@link TimeSeriesResult} of the result.
+     */
+    CompletionStage<TimeSeriesResult> execute();
 
     /**
-     * Public no args constructor.
+     * Gets a list of dependent {@link StageExecution}.
+     *
+     * @return list of dependencies
      */
-    public AlertsUpdateEtagTrigger() {
-        super(AlertEtags::incrementEtag, 7);
-    }
+    List<StageExecution> dependencies();
 }

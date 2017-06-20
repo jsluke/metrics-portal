@@ -24,8 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.ebean.Ebean;
 import models.ebean.NagiosExtension;
 import models.internal.Alert;
-import models.internal.Context;
-import models.internal.Operator;
 import models.internal.Organization;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -82,15 +80,8 @@ public class AlertControllerTest {
                 .findUnique();
 
         Assert.assertNotNull(alert);
-        Assert.assertEquals(Context.CLUSTER, alert.getContext());
-        Assert.assertEquals("test-cluster", alert.getCluster());
         Assert.assertEquals("test-name", alert.getName());
-        Assert.assertEquals("test-metric", alert.getMetric());
-        Assert.assertEquals("test-service", alert.getService());
         Assert.assertEquals(1, alert.getPeriod());
-        Assert.assertEquals(Operator.EQUAL_TO, alert.getOperator());
-        Assert.assertEquals(12, alert.getQuantityValue(), 0.01);
-        Assert.assertEquals("MEGABYTE", alert.getQuantityUnit());
 
         final NagiosExtension extension = alert.getNagiosExtension();
         Assert.assertNotNull(extension);
