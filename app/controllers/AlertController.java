@@ -15,8 +15,10 @@
  */
 package controllers;
 
+import akka.actor.ActorRef;
 import com.arpnetworking.commons.jackson.databind.ObjectMapperFactory;
 import com.arpnetworking.metrics.portal.alerts.AlertRepository;
+import com.arpnetworking.metrics.portal.alerts.impl.AlertExecutor;
 import com.arpnetworking.metrics.portal.notifications.NotificationRepository;
 import com.arpnetworking.steno.Logger;
 import com.arpnetworking.steno.LoggerFactory;
@@ -48,6 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 /**
@@ -64,13 +67,16 @@ public class AlertController extends Controller {
      * @param configuration Instance of Play's <code>Configuration</code>.
      * @param alertRepository Instance of <code>AlertRepository</code>.
      * @param notificationRepository Instance of <code>NotificationRepository</code>
+     * @param alertExecutorRegion The alert executor shard region {@link ActorRef}
      */
     @Inject
     public AlertController(
             final Config configuration,
             final AlertRepository alertRepository,
-            final NotificationRepository notificationRepository) {
-        this(configuration.getInt("alerts.limit"), alertRepository, notificationRepository);
+            final NotificationRepository notificationRepository,
+            @Named("alert-execution-shard-region")
+            final ActorRef alertExecutorRegion) {
+        this(configuration.getInt("alerts.limit"), alertRepository, notificationRepository, alertExecutorRegion);
     }
 
     /**
@@ -93,6 +99,9 @@ public class AlertController extends Controller {
 
         try {
             _alertRepository.addOrUpdateAlert(alert, Organization.DEFAULT);
+            _alertExecutorRegion.tell(
+                    new AlertExecutor.SendTo(alert.getId(), AlertExecutor.RefreshAlert.getInstance()),
+                    ActorRef.noSender());
             // CHECKSTYLE.OFF: IllegalCatch - Convert any exception to 500
         } catch (final Exception e) {
             // CHECKSTYLE.ON: IllegalCatch
@@ -229,6 +238,7 @@ public class AlertController extends Controller {
     public Result delete(final String id) {
         final UUID identifier = UUID.fromString(id);
         final int deleted = _alertRepository.delete(identifier, Organization.DEFAULT);
+        _alertExecutorRegion.tell(new AlertExecutor.SendTo(identifier, AlertExecutor.RefreshAlert.getInstance()), ActorRef.noSender());
         if (deleted > 0) {
             return noContent();
         } else {
@@ -313,15 +323,18 @@ public class AlertController extends Controller {
     private AlertController(
             final int maxLimit,
             final AlertRepository alertRepository,
-            final NotificationRepository notificationRepository) {
+            final NotificationRepository notificationRepository,
+            final ActorRef alertExecutorRegion) {
         _maxLimit = maxLimit;
         _alertRepository = alertRepository;
         _notificationRepository = notificationRepository;
+        _alertExecutorRegion = alertExecutorRegion;
     }
 
     private final int _maxLimit;
     private final AlertRepository _alertRepository;
     private final NotificationRepository _notificationRepository;
+    private final ActorRef _alertExecutorRegion;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AlertController.class);
     private static final String NAGIOS_EXTENSION_SEVERITY_KEY = "severity";

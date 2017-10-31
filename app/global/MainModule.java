@@ -21,6 +21,8 @@ import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.Cluster;
+import akka.cluster.sharding.ClusterSharding;
+import akka.cluster.sharding.ClusterShardingSettings;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import com.arpnetworking.commons.akka.GuiceActorCreator;
@@ -30,12 +32,16 @@ import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.impl.ApacheHttpSink;
 import com.arpnetworking.metrics.impl.TsdMetricsFactory;
 import com.arpnetworking.metrics.portal.alerts.AlertRepository;
+import com.arpnetworking.metrics.portal.alerts.impl.AlertExecutor;
+import com.arpnetworking.metrics.portal.alerts.impl.AlertMessageExtractor;
+import com.arpnetworking.metrics.portal.alerts.impl.AlertScheduler;
 import com.arpnetworking.metrics.portal.expressions.ExpressionRepository;
 import com.arpnetworking.metrics.portal.health.HealthProvider;
 import com.arpnetworking.metrics.portal.hosts.HostRepository;
 import com.arpnetworking.metrics.portal.hosts.impl.HostProviderFactory;
 import com.arpnetworking.metrics.portal.notifications.NotificationRepository;
 import com.arpnetworking.play.configuration.ConfigurationHelper;
+import com.arpnetworking.utility.ParallelLeastShardAllocationStrategy;
 import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
 import com.datastax.driver.extras.codecs.joda.InstantCodec;
@@ -58,6 +64,7 @@ import play.libs.Json;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -94,6 +101,10 @@ public class MainModule extends AbstractModule {
         bind(ActorRef.class)
                 .annotatedWith(Names.named("HostProviderScheduler"))
                 .toProvider(HostProviderProvider.class)
+                .asEagerSingleton();
+        bind(ActorRef.class)
+                .annotatedWith(Names.named("AlertScheduler"))
+                .toProvider(AlertExecutionSchedulerProvider.class)
                 .asEagerSingleton();
     }
 
@@ -167,6 +178,27 @@ public class MainModule extends AbstractModule {
         });
 
         return objectMapper;
+    }
+
+    @Provides
+    @Singleton
+    @Named("alert-execution-shard-region")
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD") // Invoked reflectively by Guice
+    private ActorRef provideAlertExecutorShardRegion(
+            final ActorSystem system,
+            final Injector injector,
+            final AlertMessageExtractor extractor) {
+        final ClusterSharding clusterSharding = ClusterSharding.get(system);
+        return clusterSharding.start(
+                "AlertExecutor",
+                GuiceActorCreator.props(injector, AlertExecutor.class),
+                ClusterShardingSettings.create(system).withRememberEntities(true),
+                extractor,
+                new ParallelLeastShardAllocationStrategy(
+                        100,
+                        3,
+                        Optional.empty()),
+                PoisonPill.getInstance());
     }
 
     private static final class HealthProviderProvider implements Provider<HealthProvider> {
@@ -340,9 +372,9 @@ public class MainModule extends AbstractModule {
             // Start a singleton instance of the scheduler on a "host_indexer" node in the cluster.
             if (cluster.selfRoles().contains(INDEXER_ROLE)) {
                 return _system.actorOf(ClusterSingletonManager.props(
-                                _hostProviderProps,
-                                PoisonPill.getInstance(),
-                                ClusterSingletonManagerSettings.create(_system).withRole(INDEXER_ROLE)),
+                        _hostProviderProps,
+                        PoisonPill.getInstance(),
+                        ClusterSingletonManagerSettings.create(_system).withRole(INDEXER_ROLE)),
                         "host-provider-scheduler");
             }
             return null;
@@ -352,6 +384,35 @@ public class MainModule extends AbstractModule {
         private final Props _hostProviderProps;
 
         private static final String INDEXER_ROLE = "host_indexer";
+    }
+
+    private static final class AlertExecutionSchedulerProvider implements Provider<ActorRef> {
+        @Inject
+        AlertExecutionSchedulerProvider(
+                final ActorSystem system,
+                final Injector injector) {
+            _system = system;
+            _injector = injector;
+        }
+
+        @Override
+        public ActorRef get() {
+            final Cluster cluster = Cluster.get(_system);
+            // Start a singleton instance of the scheduler on a "alert_scheduler" node in the cluster.
+            if (cluster.selfRoles().contains(ALERT_SCHEDULER_ROLE)) {
+                return _system.actorOf(ClusterSingletonManager.props(
+                        GuiceActorCreator.props(_injector, AlertScheduler.class),
+                        PoisonPill.getInstance(),
+                        ClusterSingletonManagerSettings.create(_system).withRole(ALERT_SCHEDULER_ROLE)),
+                        "alert-execution-scheduler");
+            }
+            return null;
+        }
+
+        private final ActorSystem _system;
+        private final Injector _injector;
+
+        private static final String ALERT_SCHEDULER_ROLE = "alert_scheduler";
     }
 
     private static final class JvmMetricsCollectorProvider implements Provider<ActorRef> {
