@@ -20,6 +20,7 @@ import com.arpnetworking.logback.annotations.Loggable;
 import com.google.common.base.MoreObjects;
 import models.internal.Alert;
 import models.internal.NagiosExtension;
+import models.internal.NotificationGroup;
 import net.sf.oval.constraint.NotEmpty;
 import net.sf.oval.constraint.NotNull;
 import org.joda.time.Period;
@@ -61,6 +62,11 @@ public final class DefaultAlert implements Alert {
     }
 
     @Override
+    public NotificationGroup getNotificationGroup() {
+        return _notificationGroup;
+    }
+
+    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("id", Integer.toHexString(System.identityHashCode(this)))
@@ -70,6 +76,7 @@ public final class DefaultAlert implements Alert {
                 .add("Query", _query)
                 .add("Period", _period)
                 .add("NagiosExtensions", _nagiosExtension)
+                .add("NotificationGroup", _notificationGroup)
                 .toString();
     }
 
@@ -88,6 +95,7 @@ public final class DefaultAlert implements Alert {
                 && Objects.equals(_name, otherAlert._name)
                 && Objects.equals(_query, otherAlert._query)
                 && Objects.equals(_period.normalizedStandard(), otherAlert._period.normalizedStandard())
+                && Objects.equals(_notificationGroup, otherAlert._notificationGroup)
                 && Objects.equals(_nagiosExtension, otherAlert._nagiosExtension);
     }
 
@@ -98,7 +106,8 @@ public final class DefaultAlert implements Alert {
                 _query,
                 _name,
                 _period,
-                _nagiosExtension);
+                _nagiosExtension,
+                _notificationGroup);
     }
 
     private DefaultAlert(final Builder builder) {
@@ -107,6 +116,7 @@ public final class DefaultAlert implements Alert {
         _query = builder._query;
         _period = builder._period;
         _nagiosExtension = builder._nagiosExtension;
+        _notificationGroup = builder._notificationGroup;
     }
 
     private final UUID _id;
@@ -114,6 +124,7 @@ public final class DefaultAlert implements Alert {
     private final String _query;
     private final Period _period;
     private final NagiosExtension _nagiosExtension;
+    private final NotificationGroup _notificationGroup;
 
     /**
      * Builder implementation for <code>DefaultAlert</code>.
@@ -182,6 +193,17 @@ public final class DefaultAlert implements Alert {
             return this;
         }
 
+        /**
+         * The notification group to notify.
+         *
+         * @param value The notification group.
+         * @return This instance of <code>Builder</code>.
+         */
+        public Builder setNotificationGroup(final NotificationGroup value) {
+            _notificationGroup = value;
+            return this;
+        }
+
         @NotNull
         private UUID _id;
         @NotNull
@@ -192,6 +214,7 @@ public final class DefaultAlert implements Alert {
         private String _query;
         @NotNull
         private Period _period;
+        private NotificationGroup _notificationGroup;
         private NagiosExtension _nagiosExtension;
     }
 }

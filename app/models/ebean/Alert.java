@@ -76,6 +76,10 @@ public class Alert {
     @OneToOne(mappedBy = "alert", cascade = CascadeType.ALL)
     private NagiosExtension nagiosExtension;
 
+    @ManyToOne
+    @JoinColumn(name = "notification_group")
+    private NotificationGroup notificationGroup;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "organization")
     private Organization organization;
@@ -152,12 +156,20 @@ public class Alert {
         nagiosExtension = value;
     }
 
+    public NotificationGroup getNotificationGroup() {
+        return notificationGroup;
+    }
+
+    public void setNotificationGroup(final NotificationGroup value) {
+        notificationGroup = value;
+    }
+
     public Organization getOrganization() {
         return organization;
     }
 
-    public void setOrganization(final Organization organizationValue) {
-        this.organization = organizationValue;
+    public void setOrganization(final Organization value) {
+        organization = value;
     }
 }
 // CHECKSTYLE.ON: MemberNameCheck

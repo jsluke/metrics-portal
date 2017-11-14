@@ -34,6 +34,7 @@ import com.arpnetworking.metrics.portal.expressions.ExpressionRepository;
 import com.arpnetworking.metrics.portal.health.HealthProvider;
 import com.arpnetworking.metrics.portal.hosts.HostRepository;
 import com.arpnetworking.metrics.portal.hosts.impl.HostProviderFactory;
+import com.arpnetworking.metrics.portal.notifications.NotificationRepository;
 import com.arpnetworking.play.configuration.ConfigurationHelper;
 import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
@@ -80,6 +81,9 @@ public class MainModule extends AbstractModule {
                 .asEagerSingleton();
         bind(HostRepository.class)
                 .toProvider(HostRepositoryProvider.class)
+                .asEagerSingleton();
+        bind(NotificationRepository.class)
+                .toProvider(NotificationRepositoryProvider.class)
                 .asEagerSingleton();
         bind(AlertRepository.class)
                 .toProvider(AlertRepositoryProvider.class)
@@ -213,6 +217,39 @@ public class MainModule extends AbstractModule {
                         return CompletableFuture.completedFuture(null);
                     });
             return hostRepository;
+        }
+
+        private final Injector _injector;
+        private final Environment _environment;
+        private final Config _configuration;
+        private final ApplicationLifecycle _lifecycle;
+    }
+
+    private static final class NotificationRepositoryProvider implements Provider<NotificationRepository> {
+
+        @Inject
+        NotificationRepositoryProvider(
+                final Injector injector,
+                final Environment environment,
+                final Config configuration,
+                final ApplicationLifecycle lifecycle) {
+            _injector = injector;
+            _environment = environment;
+            _configuration = configuration;
+            _lifecycle = lifecycle;
+        }
+
+        @Override
+        public NotificationRepository get() {
+            final NotificationRepository repository = _injector.getInstance(
+                    ConfigurationHelper.<NotificationRepository>getType(_environment, _configuration, "notificationRepository.type"));
+            repository.open();
+            _lifecycle.addStopHook(
+                    () -> {
+                        repository.close();
+                        return CompletableFuture.completedFuture(null);
+                    });
+            return repository;
         }
 
         private final Injector _injector;

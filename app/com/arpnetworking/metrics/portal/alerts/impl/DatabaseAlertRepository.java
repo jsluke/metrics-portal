@@ -29,6 +29,7 @@ import io.ebean.Query;
 import io.ebean.Transaction;
 import models.ebean.AlertEtags;
 import models.ebean.NagiosExtension;
+import models.ebean.NotificationGroup;
 import models.internal.Alert;
 import models.internal.AlertQuery;
 import models.internal.Organization;
@@ -199,6 +200,11 @@ public class DatabaseAlertRepository implements AlertRepository {
             ebeanAlert.setName(alert.getName());
             ebeanAlert.setQuery(alert.getQuery());
             ebeanAlert.setPeriod(alert.getPeriod().toStandardSeconds().getSeconds());
+            if (alert.getNotificationGroup() != null) {
+                ebeanAlert.setNotificationGroup(NotificationGroup.findByNotificationGroup(alert.getNotificationGroup()));
+            } else {
+                ebeanAlert.setNotificationGroup(null);
+            }
             _alertQueryGenerator.saveAlert(ebeanAlert);
             transaction.commit();
 
@@ -232,13 +238,18 @@ public class DatabaseAlertRepository implements AlertRepository {
     }
 
     private Alert convertFromEbeanAlert(final models.ebean.Alert ebeanAlert) {
-        return new DefaultAlert.Builder()
+        final DefaultAlert.Builder builder = new DefaultAlert.Builder()
                 .setId(ebeanAlert.getUuid())
                 .setName(ebeanAlert.getName())
                 .setQuery(ebeanAlert.getQuery())
                 .setPeriod(Period.seconds(ebeanAlert.getPeriod()).normalizedStandard())
-                .setNagiosExtension(convertToInternalNagiosExtension(ebeanAlert.getNagiosExtension()))
-                .build();
+                .setNagiosExtension(convertToInternalNagiosExtension(ebeanAlert.getNagiosExtension()));
+
+        if (ebeanAlert.getNotificationGroup() != null) {
+            builder.setNotificationGroup(ebeanAlert.getNotificationGroup().toInternal());
+        }
+
+        return builder.build();
     }
 
 

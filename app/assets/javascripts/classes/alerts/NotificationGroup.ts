@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Groupon.com
+ * Copyright 2017 Smartsheet.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,14 @@
  * limitations under the License.
  */
 
-import ko = require('knockout');
-import Quantity = require('../Quantity');
-
-class AlertData {
+class NotificationGroup {
     id: string;
     name: string;
-    query: string;
-    period: string;
-    notificationGroupId: string;
-    extensions: { [id: string]: string };
-    editUri: KnockoutComputed<string>;
 
-    constructor(id: string, name: string, period: string, extensions: { [id: string]: string }, notificationGroupId: string) {
+    constructor(id: string, name: string) {
         this.id = id;
         this.name = name;
-        this.period = period;
-        this.extensions = extensions;
-        this.notificationGroupId = notificationGroupId;
-
-        this.editUri = ko.computed<string>(() => {
-            return "#alert/edit/" + this.id;
-        });
     }
 }
 
-export = AlertData;
+export = NotificationGroup;
