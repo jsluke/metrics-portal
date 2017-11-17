@@ -35,21 +35,27 @@ GET        /v1/hosts/query                      controllers.HostController.query
 # Alerts
 GET        /v1/alerts/query                     controllers.AlertController.query(contains: String ?= null, context: String ?= null, cluster: String ?= null, service: String ?= null, limit: java.lang.Integer ?= null, offset: java.lang.Integer ?= null)
 GET        /v1/alerts/:id                       controllers.AlertController.get(id: String)
++nocsrf
 DELETE     /v1/alerts/:id                       controllers.AlertController.delete(id: String)
++nocsrf
 PUT        /v1/alerts                           controllers.AlertController.addOrUpdate
 
 # Expressions
 GET        /v1/expressions/query                controllers.ExpressionController.query(contains: String ?= null, cluster: String ?= null, service: String ?= null, limit: java.lang.Integer ?= null, offset: java.lang.Integer ?= null)
 GET        /v1/expressions/:id                  controllers.ExpressionController.get(id: String)
++nocsrf
 PUT        /v1/expressions                      controllers.ExpressionController.addOrUpdate
 
 # Notifications
 GET        /v1/notificationgroup/query          controllers.NotificationController.query(contains: String ?= null, limit: java.lang.Integer ?= null, offset: java.lang.Integer ?= null)
 GET        /v1/notificationgroup/:id            controllers.NotificationController.get(id: String)
++nocsrf
 PUT        /v1/notificationgroup                controllers.NotificationController.addOrUpdate
++nocsrf
 PUT        /v1/notificationgroup/:id/recipient  controllers.NotificationController.addRecipient(id: String)
 
 # Metrics Queries
++nocsrf
 POST       /v1/metrics/query                    controllers.MetricsController.query()
 
 # Templates

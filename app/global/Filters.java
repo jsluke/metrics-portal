@@ -15,6 +15,8 @@
  */
 package global;
 
+import com.arpnetworking.steno.Logger;
+import com.arpnetworking.steno.LoggerFactory;
 import play.api.http.EnabledFilters;
 import play.filters.cors.CORSFilter;
 import play.filters.gzip.GzipFilter;
@@ -45,6 +47,10 @@ public final class Filters extends DefaultHttpFilters {
         // Prepend the CORS filter, append the GZip filter.
         // NOTE: CORS must go first so that we can whitelist API endpoints from requiring a CSRF token
         super(append(prepend(enabledFilters.asJava().getFilters(), corsFilter.asJava()), gzipFilter.asJava()));
+        LOGGER.info()
+                .setMessage("Loaded filters")
+                .addData("filters", getFilters())
+                .log();
     }
 
     private static List<EssentialFilter> append(final List<EssentialFilter> filters, final EssentialFilter toAppend) {
@@ -58,4 +64,6 @@ public final class Filters extends DefaultHttpFilters {
         combinedFilters.add(0, toPrepend);
         return combinedFilters;
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Filters.class);
 }
