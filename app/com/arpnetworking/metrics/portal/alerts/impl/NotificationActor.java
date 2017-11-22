@@ -90,6 +90,10 @@ public class NotificationActor extends AbstractPersistentActor {
                         final List<CompletionStage<Void>> futures = entries.stream()
                                 .map(entry -> entry.notifyRecipient(trigger, _injector))
                                 .collect(Collectors.toList());
+                        LOGGER.warn()
+                                .setMessage("futures")
+                                .addData("futures", futures)
+                                .log();
                         if (futures.size() > 0) {
                             final CompletableFuture<Void> all = CompletableFuture.allOf(new CompletableFuture<?>[futures.size()]);
                             all.thenApply(v -> new NotificationsSent(trigger));
