@@ -288,7 +288,8 @@ object ApplicationBuild extends Build {
       mainConfig := "start_app",
       mainModule := "start_app",
       buildProfile := JS.Object("wrapShim" -> true),
-      pipelineStages := Seq(rjs, digest, gzip),
+      pipelineStages := Seq(digest, gzip),
+      RjsKeys.webJarCdns := Map(),
       modules += JS.Object("name" -> "classes/shell"),
 
       scalaVersion := "2.11.11",
