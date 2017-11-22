@@ -65,10 +65,12 @@ public final class DefaultEmailNotificationEntry implements NotificationEntry {
                     + "Details: " + trigger.getArgs().toString();
             mailMessage.setText(text);
             Transport.send(mailMessage);
+            return CompletableFuture.completedFuture(null);
         } catch (final MessagingException e) {
-            throw new RuntimeException(e);
+            final CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     private DefaultEmailNotificationEntry(final Builder builder) {
