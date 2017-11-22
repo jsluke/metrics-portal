@@ -34,6 +34,8 @@ import RjsKeys._
 import sbt._
 import Keys._
 import com.simplytyped.Antlr4Plugin._
+import com.typesafe.sbt.packager.archetypes.JavaServerAppPackaging
+import com.typesafe.sbt.packager.archetypes.systemloader.SystemVPlugin
 import play.sbt.PlayImport._
 import com.typesafe.sbt.packager.rpm._
 import com.typesafe.sbt.packager.rpm.RpmPlugin.autoImport._
@@ -77,6 +79,7 @@ object ApplicationBuild extends Build {
       "com.google.guava" % "guava" % "19.0",
       "com.google.inject" % "guice" % "4.0",
       "com.h2database" % "h2" % "1.4.192",
+      "com.sun.mail" % "javax.mail" % "1.6.0",
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
@@ -121,7 +124,7 @@ object ApplicationBuild extends Build {
       "org.mockito" % "mockito-core" % "1.10.19" % "test"
     )
 
-    val main = Project(appName, file("."), settings = s).enablePlugins(play.sbt.PlayJava, play.ebean.sbt.PlayEbean, RpmPlugin, SbtAspectj).settings(
+    val main = Project(appName, file("."), settings = s).enablePlugins(play.sbt.PlayJava, play.ebean.sbt.PlayEbean, RpmPlugin, SbtAspectj, JavaServerAppPackaging, SystemVPlugin).settings(
       antlr4PackageName in Antlr4 := Some("com.arpnetworking.mql.grammar"),
       antlr4GenVisitor in Antlr4 := true,
       antlr4Version in Antlr4 := "4.6",

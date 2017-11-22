@@ -65,10 +65,14 @@ import play.libs.Json;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.mail.Authenticator;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
 
 /**
  * Module that defines the main bindings.
@@ -199,6 +203,28 @@ public class MainModule extends AbstractModule {
                         3,
                         Optional.empty()),
                 PoisonPill.getInstance());
+    }
+
+
+    @Provides
+    @Singleton
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD") // Invoked reflectively by Guice
+    private Session provideMailSession(final Config config) {
+        final Properties props = new Properties();
+        final Config mailConfig = config.getConfig("mail.properties");
+        mailConfig.entrySet().forEach(entry -> props.put(entry.getKey(), entry.getValue().render()));
+
+        if (!config.getIsNull("mail.user") || !config.getIsNull("mail.password")) {
+            final Authenticator authenticator = new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(config.getString("mail.user"), config.getString("mail.password"));
+                }
+            };
+            return Session.getInstance(props, authenticator);
+        } else {
+            return Session.getInstance(props);
+        }
     }
 
     private static final class HealthProviderProvider implements Provider<HealthProvider> {

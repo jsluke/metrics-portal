@@ -37,6 +37,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.inject.Injector;
 import models.internal.Alert;
 import models.internal.Organization;
 import org.antlr.v4.runtime.ANTLRInputStream;
@@ -67,9 +68,10 @@ public class AlertExecutor extends AbstractPersistentActorWithTimers {
      * @param queryRunnerProvider a query runner provider
      */
     @Inject
-    public AlertExecutor(final AlertRepository alertRepository, final Provider<QueryRunner> queryRunnerProvider) {
+    public AlertExecutor(final AlertRepository alertRepository, final Provider<QueryRunner> queryRunnerProvider, final Injector injector) {
         _alertRepository = alertRepository;
         _queryRunner = queryRunnerProvider;
+        _injector = injector;
         LOGGER.debug()
                 .setMessage("Starting alert executor")
                 .addData("name", self().path().name())
@@ -180,7 +182,9 @@ public class AlertExecutor extends AbstractPersistentActorWithTimers {
         return _notificationActors.computeIfAbsent(
                 notificationId,
                 hash -> {
-                    final ActorRef actor = context().actorOf(NotificationActor.props(_alertId, _alertRepository), notificationId);
+                    final ActorRef actor = context().actorOf(
+                            NotificationActor.props(_alertId, _alertRepository, _injector),
+                            notificationId);
                     _pendingMessages.get(notificationId).forEach(msg -> actor.tell(msg, self()));
                     _pendingMessages.removeAll(notificationId);
                     return actor;
@@ -270,6 +274,7 @@ public class AlertExecutor extends AbstractPersistentActorWithTimers {
     private MqlParser.StatementContext _parsedStatement;
 
     private final Provider<QueryRunner> _queryRunner;
+    private final Injector _injector;
     private final AlertRepository _alertRepository;
     private final BiMap<String, ActorRef> _notificationActors = HashBiMap.create();
     private final Set<ActorRef> _shuttingDownNotifications = Sets.newHashSet();

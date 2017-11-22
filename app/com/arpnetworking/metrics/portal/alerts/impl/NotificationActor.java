@@ -18,12 +18,14 @@ package com.arpnetworking.metrics.portal.alerts.impl;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.pattern.PatternsCS;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.SnapshotOffer;
 import com.arpnetworking.metrics.portal.alerts.AlertRepository;
 import com.arpnetworking.mql.grammar.AlertTrigger;
 import com.arpnetworking.steno.Logger;
 import com.arpnetworking.steno.LoggerFactory;
+import com.google.inject.Injector;
 import models.internal.Alert;
 import models.internal.NotificationEntry;
 import models.internal.NotificationGroup;
@@ -36,7 +38,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Actor to dispatch notifications for an alert.
@@ -51,8 +56,8 @@ public class NotificationActor extends AbstractPersistentActor {
      * @param alertRepository an alert repository
      * @return a new {@link Props} to build the actor
      */
-    public static Props props(final UUID alertId, final AlertRepository alertRepository) {
-        return Props.create(NotificationActor.class, () -> new NotificationActor(alertId, alertRepository));
+    public static Props props(final UUID alertId, final AlertRepository alertRepository, final Injector injector) {
+        return Props.create(NotificationActor.class, () -> new NotificationActor(alertId, alertRepository, injector));
     }
 
     /**
@@ -61,9 +66,10 @@ public class NotificationActor extends AbstractPersistentActor {
      * @param alertId the id of the alert causing the notification
      * @param alertRepository an alert repository
      */
-    public NotificationActor(final UUID alertId, final AlertRepository alertRepository) {
+    public NotificationActor(final UUID alertId, final AlertRepository alertRepository, final Injector injector) {
         _alertId = alertId;
         _alertRepository = alertRepository;
+        _injector = injector;
         context().setReceiveTimeout(FiniteDuration.apply(30, TimeUnit.MINUTES));
     }
 
@@ -81,7 +87,17 @@ public class NotificationActor extends AbstractPersistentActor {
                                 .addData("entries", entries)
                                 .addData("trigger", trigger)
                                 .log();
-                        entries.forEach(entry -> entry.notifyRecipient(trigger));
+                        final List<CompletionStage<Void>> futures = entries.stream()
+                                .map(entry -> entry.notifyRecipient(trigger, _injector))
+                                .collect(Collectors.toList());
+                        final CompletableFuture<Void> all = CompletableFuture.allOf(new CompletableFuture<?>[futures.size()]);
+                        all.thenApply(v -> new NotificationsSent(trigger));
+                        PatternsCS.pipe(all, context().dispatcher()).to(self());
+                    }
+                })
+                .match(NotificationsSent.class, sent -> {
+                    final AlertTrigger trigger = sent.getTrigger();
+                    if (_lastAlertStartTime == null || trigger.getTime().isAfter(_lastAlertStartTime)) {
                         saveSnapshot(new NotificationState(trigger.getTime()));
                         _lastAlertStartTime = trigger.getTime();
                     }
@@ -109,8 +125,21 @@ public class NotificationActor extends AbstractPersistentActor {
 
     private final UUID _alertId;
     private final AlertRepository _alertRepository;
+    private final Injector _injector;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotificationActor.class);
+
+    private static final class NotificationsSent {
+        NotificationsSent(final AlertTrigger trigger) {
+            _trigger = trigger;
+        }
+
+        public AlertTrigger getTrigger() {
+            return _trigger;
+        }
+
+        private final AlertTrigger _trigger;
+    }
 
     private static final class NotificationState implements Serializable {
         NotificationState(final DateTime lastNotificationTime) {

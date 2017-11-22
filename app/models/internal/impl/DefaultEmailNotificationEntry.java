@@ -19,9 +19,19 @@ import com.arpnetworking.commons.builder.OvalBuilder;
 import com.arpnetworking.mql.grammar.AlertTrigger;
 import com.arpnetworking.steno.Logger;
 import com.arpnetworking.steno.LoggerFactory;
+import com.google.inject.Injector;
 import models.internal.NotificationEntry;
 import net.sf.oval.constraint.NotEmpty;
 import net.sf.oval.constraint.NotNull;
+
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.MimeMessage;
 
 /**
  * Represents a notification by email.
@@ -31,13 +41,34 @@ import net.sf.oval.constraint.NotNull;
 public final class DefaultEmailNotificationEntry implements NotificationEntry {
 
     @Override
-    public void notifyRecipient(final AlertTrigger trigger) {
+    public CompletionStage<Void> notifyRecipient(final AlertTrigger trigger, final Injector injector) {
         // TODO(brandon): fire the email
+
         LOGGER.debug()
                 .setMessage("Sending email notification")
                 .addData("address", _address)
                 .addData("trigger", trigger)
                 .log();
+        final Session mailSession = injector.getInstance(Session.class);
+        final MimeMessage mailMessage = new MimeMessage(mailSession);
+        try {
+            mailMessage.addRecipients(Message.RecipientType.TO, _address);
+            final Optional<String> name = Optional.ofNullable(trigger.getArgs().get("name"));
+            final String subject;
+            if (name.isPresent()) {
+                subject = String.format("%s in alarm", name.get());
+            } else {
+                subject = "Metric is in alarm";
+            }
+            mailMessage.setSubject(subject);
+            final String text = "A metric has gone into alert: \n"
+                    + "Details: " + trigger.getArgs().toString();
+            mailMessage.setText(text);
+            Transport.send(mailMessage);
+        } catch (final MessagingException e) {
+            throw new RuntimeException(e);
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     private DefaultEmailNotificationEntry(final Builder builder) {
