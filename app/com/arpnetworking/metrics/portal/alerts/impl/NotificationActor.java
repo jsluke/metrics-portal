@@ -83,7 +83,7 @@ public class NotificationActor extends AbstractPersistentActor {
                                 .map(NotificationGroup::getEntries)
                                 .orElse(Collections.emptyList());
                         LOGGER.debug()
-                                .setMessage("dispatching trigger to entries")
+                                .setMessage("Dispatching trigger to entries")
                                 .addData("entries", entries)
                                 .addData("trigger", trigger)
                                 .log();
@@ -100,6 +100,10 @@ public class NotificationActor extends AbstractPersistentActor {
                 })
                 .match(NotificationsSent.class, sent -> {
                     final AlertTrigger trigger = sent.getTrigger();
+                    LOGGER.debug()
+                            .setMessage("Trigger dispatched successfully")
+                            .addData("trigger", trigger)
+                            .log();
                     if (_lastAlertStartTime == null || trigger.getTime().isAfter(_lastAlertStartTime)) {
                         saveSnapshot(new NotificationState(trigger.getTime()));
                         _lastAlertStartTime = trigger.getTime();
