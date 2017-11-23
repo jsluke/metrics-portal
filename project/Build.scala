@@ -39,6 +39,8 @@ import com.typesafe.sbt.packager.archetypes.systemloader.SystemVPlugin
 import play.sbt.PlayImport._
 import com.typesafe.sbt.packager.rpm._
 import com.typesafe.sbt.packager.rpm.RpmPlugin.autoImport._
+import com.typesafe.sbt.packager.universal.UniversalPlugin
+import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseStep
 import sbtrelease.ReleaseStateTransformations._
@@ -124,7 +126,7 @@ object ApplicationBuild extends Build {
       "org.mockito" % "mockito-core" % "1.10.19" % "test"
     )
 
-    val main = Project(appName, file("."), settings = s).enablePlugins(play.sbt.PlayJava, play.ebean.sbt.PlayEbean, RpmPlugin, SbtAspectj, JavaServerAppPackaging, SystemVPlugin).settings(
+    val main = Project(appName, file("."), settings = s).enablePlugins(play.sbt.PlayJava, play.ebean.sbt.PlayEbean, RpmPlugin, SbtAspectj, JavaServerAppPackaging, SystemVPlugin, UniversalPlugin).settings(
       antlr4PackageName in Antlr4 := Some("com.arpnetworking.mql.grammar"),
       antlr4GenVisitor in Antlr4 := true,
       antlr4Version in Antlr4 := "4.6",
@@ -279,6 +281,7 @@ object ApplicationBuild extends Build {
       devSettings := Seq(("config.resource", "dev.conf"), "play.server.http.port" -> "8080"),
       javaOptions += "-Dconfig.file=conf/portal.application.conf",
       javaOptions in Test += "-Dlogger.resource=logback-test.xml",
+      javaOptions in Universal += s"-Dpidfile.path=/var/run/$appName/play.pid",
 
       JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
       routesGenerator := InjectedRoutesGenerator,

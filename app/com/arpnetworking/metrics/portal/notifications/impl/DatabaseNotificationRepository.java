@@ -37,6 +37,7 @@ import models.internal.impl.DefaultEmailNotificationEntry;
 import models.internal.impl.DefaultNotificationGroupQuery;
 import models.internal.impl.DefaultQueryResult;
 import play.Environment;
+import play.db.ebean.EbeanConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,10 +58,15 @@ public class DatabaseNotificationRepository implements NotificationRepository {
      *
      * @param environment Play's <code>Environment</code> instance.
      * @param config Play's <code>Configuration</code> instance.
+     * @param ignored An EbeanConfig needed to order the startup and injection
      * @throws Exception If the configuration is invalid.
      */
     @Inject
-    public DatabaseNotificationRepository(final Environment environment, final Config config) throws Exception {
+    public DatabaseNotificationRepository(
+            final Environment environment,
+            final Config config,
+            final EbeanConfig ignored)
+            throws Exception {
         this(ConfigurationHelper.<NotificationQueryGenerator>getType(
                         environment,
                         config,
@@ -266,6 +272,66 @@ public class DatabaseNotificationRepository implements NotificationRepository {
 
             LOGGER.info()
                     .setMessage("Added recipient to notification group")
+                    .addData("group", group)
+                    .addData("organization", organization)
+                    .addData("recipient", recipient)
+                    .log();
+            // CHECKSTYLE.OFF: IllegalCatchCheck
+        } catch (final RuntimeException e) {
+            // CHECKSTYLE.ON: IllegalCatchCheck
+            LOGGER.error()
+                    .setMessage("Failed to upsert notification group")
+                    .addData("group", group)
+                    .addData("organization", organization)
+                    .setThrowable(e)
+                    .log();
+            throw new PersistenceException(e);
+        }
+
+    }
+
+    @Override
+    public void removeRecipientFromNotificationGroup(
+            final NotificationGroup group,
+            final Organization organization,
+            final NotificationEntry recipient) {
+        assertIsOpen();
+        LOGGER.debug()
+                .setMessage("Adding recipient to notification group")
+                .addData("group", group)
+                .addData("recipient", recipient)
+                .addData("organization", organization)
+                .log();
+
+
+        try (Transaction transaction = Ebean.beginTransaction()) {
+            final models.ebean.NotificationGroup notificationGroup = Ebean.find(models.ebean.NotificationGroup.class)
+                    .where()
+                    .eq("uuid", group.getId())
+                    .eq("organization.uuid", organization.getId())
+                    .findUnique();
+            if (notificationGroup == null) {
+                throw new IllegalArgumentException("NotificationGroup not found");
+            }
+
+            final NotificationRecipient toAdd = internalToEbeanRecipient(recipient);
+            final List<NotificationRecipient> recipients = notificationGroup.getRecipients();
+            if (!recipients.contains(toAdd)) {
+                // We already have the recipient
+                LOGGER.debug()
+                        .setMessage("Recipient not in notification group")
+                        .addData("group", group)
+                        .addData("recipient", recipient)
+                        .addData("organization", organization)
+                        .log();
+                return;
+            }
+            recipients.remove(toAdd);
+            _notificationQueryGenerator.saveNotificationGroup(notificationGroup);
+            transaction.commit();
+
+            LOGGER.info()
+                    .setMessage("Removed recipient from notification group")
                     .addData("group", group)
                     .addData("organization", organization)
                     .addData("recipient", recipient)

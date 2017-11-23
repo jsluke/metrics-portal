@@ -61,6 +61,7 @@ public final class DefaultEmailNotificationEntry implements NotificationEntry {
                 subject = "Metric is in alarm";
             }
             mailMessage.setSubject(subject);
+            mailMessage.setFrom("Metrics Portal <noreply@smartsheet.com>");
             final String text = "A metric has gone into alert: \n"
                     + "Details: " + trigger.getArgs().toString();
             mailMessage.setText(text);

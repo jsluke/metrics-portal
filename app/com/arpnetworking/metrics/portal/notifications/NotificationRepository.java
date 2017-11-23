@@ -89,4 +89,13 @@ public interface NotificationRepository {
      * @param recipient The recipient
      */
     void addRecipientToNotificationGroup(NotificationGroup group, Organization organization, NotificationEntry recipient);
+
+    /**
+     * Remove a recipient from a notification group.
+     *
+     * @param group The notification group to add to the repository.
+     * @param organization The organization owning the group.
+     * @param recipient The recipient
+     */
+    void removeRecipientFromNotificationGroup(NotificationGroup group, Organization organization, NotificationEntry recipient);
 }

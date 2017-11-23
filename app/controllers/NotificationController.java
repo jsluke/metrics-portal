@@ -112,7 +112,7 @@ public class NotificationController extends Controller {
      * Adds a recipient to a {@link NotificationGroup}.
      *
      * @param id Id of the notification group
-     * @return Ok if the notification group was created or updated successfully, a failure HTTP status code otherwise.
+     * @return NoContent if the notification group was created or updated successfully, a failure HTTP status code otherwise.
      */
     public Result addRecipient(final String id) {
         final UUID identifier;
@@ -141,6 +141,53 @@ public class NotificationController extends Controller {
                 final NotificationGroup notificationGroup = group.get();
                 notificationGroup.getEntries().add(notificationEntry);
                 _notificationRepository.addRecipientToNotificationGroup(notificationGroup, Organization.DEFAULT, notificationEntry);
+            }
+            // CHECKSTYLE.OFF: IllegalCatch - Convert any exception to 500
+        } catch (final Exception e) {
+            // CHECKSTYLE.ON: IllegalCatch
+            LOGGER.error()
+                    .setMessage("Failed to add recipient to notification group.")
+                    .setThrowable(e)
+                    .log();
+            return internalServerError();
+        }
+        return noContent();
+    }
+
+    /**
+     * Removes a recipient from a {@link NotificationGroup}.
+     *
+     * @param id Id of the notification group
+     * @return NoContent if the notification group was removed successfully (or if the recipient was not on the list),
+     * a failure HTTP status code otherwise.
+     */
+    public Result removeRecipient(final String id) {
+        final UUID identifier;
+        try {
+            identifier = UUID.fromString(id);
+        } catch (final IllegalArgumentException e) {
+            return badRequest();
+        }
+        final NotificationEntry notificationEntry;
+        try {
+            final models.view.NotificationEntry viewEntry = buildViewEntry(request().body());
+            notificationEntry = convertViewEntryToInternalEntry(viewEntry);
+        } catch (final IOException e) {
+            LOGGER.error()
+                    .setMessage("Failed to build a notification recipient.")
+                    .setThrowable(e)
+                    .log();
+            return badRequest("Invalid request body.");
+        }
+
+        try {
+            final Optional<NotificationGroup> group = _notificationRepository.getNotificationGroup(identifier, Organization.DEFAULT);
+            if (!group.isPresent()) {
+                return notFound();
+            } else {
+                final NotificationGroup notificationGroup = group.get();
+                notificationGroup.getEntries().remove(notificationEntry);
+                _notificationRepository.removeRecipientFromNotificationGroup(notificationGroup, Organization.DEFAULT, notificationEntry);
             }
             // CHECKSTYLE.OFF: IllegalCatch - Convert any exception to 500
         } catch (final Exception e) {
