@@ -256,31 +256,29 @@ class EditAlertViewModel {
             .y((d) => { return y(d[1]); });
 
         let xrange = [
-            Math.min(
-                d3.min(series, ts => d3.min(ts.values, d => d[0]))
-                        || Infinity,
-                d3.min(rangeSeriesList, rs => d3.min(rs.values, d => d.timestamp))
-                        || Infinity,
-                +this.dateRange()[0]),
-            Math.max(
-                d3.max(series, ts => d3.max(ts.values, d => d[0]))
-                        || -Infinity,
-                d3.max(rangeSeriesList, rs => d3.max(rs.values, d => d.timestamp))
-                        || -Infinity,
-                +this.dateRange()[1])];
+            d3.min([
+                d3.min(series, ts => d3.min(ts.values, d => d[0])),
+                d3.min(rangeSeriesList, rs => d3.min(rs.values, d => d.timestamp)),
+                +this.dateRange()[0]]),
+            d3.max([
+                d3.max(series, ts => d3.max(ts.values, d => d[0])),
+                d3.max(rangeSeriesList, rs => d3.max(rs.values, d => d.timestamp)),
+                +this.dateRange()[1]])];
         x.domain(xrange);
         let yrange = [
-            Math.min(
-                d3.min(series, ts => d3.min(ts.values, d => d[1]))
-                        || Infinity,
-                d3.min(rangeSeriesList, rs => d3.min(rs.values, d => d.min))
-                || Infinity),
-            Math.max(
-                d3.max(series, ts => d3.max(ts.values, d => d[1]))
-                || -Infinity,
-                d3.max(rangeSeriesList, rs => d3.max(rs.values, d => d.max))
-                || -Infinity)];
+            d3.min([
+                d3.min(series, ts => d3.min(ts.values, d => d[1])),
+                d3.min(rangeSeriesList, rs => d3.min(rs.values, d => d.min))]),
+            d3.max([
+                d3.max(series, ts => d3.max(ts.values, d => d[1])),
+                d3.max(rangeSeriesList, rs => d3.max(rs.values, d => d.max))])];
         // let yrange = [d3.min(series[0], function(d) { return d[1]; }), d3.max(series[0], function(d) { return d[1]; })];
+        if (isNaN(yrange[0])) {
+            yrange[0] = 0;
+        }
+        if (isNaN(yrange[1])) {
+            yrange[1] = 1;
+        }
         y.domain(yrange);
 
         let area = d3.area<RangeDatapoint>()

@@ -255,6 +255,18 @@ public final class MetricsQueryResponse {
             }
 
             /**
+             * Set other args. Optional.
+             *
+             * @param value value for the other args
+             * @return this {@link Builder}
+             */
+            @JsonAnySetter
+            public Builder setOtherArgs(final ImmutableMap<String, Object> value) {
+                _otherArgs = value;
+                return this;
+            }
+
+            /**
              * Sets the values list. Optional. Cannot be null.
              *
              * @param value the values
