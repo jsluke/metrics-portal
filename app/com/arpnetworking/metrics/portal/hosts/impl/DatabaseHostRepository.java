@@ -38,7 +38,7 @@ import models.internal.impl.DefaultHost;
 import models.internal.impl.DefaultHostQuery;
 import models.internal.impl.DefaultQueryResult;
 import play.Environment;
-import play.db.ebean.EbeanConfig;
+import play.db.ebean.EbeanDynamicEvolutions;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -65,7 +65,7 @@ public class DatabaseHostRepository implements HostRepository {
      * @throws Exception If the configuration is invalid.
      */
     @Inject
-    public DatabaseHostRepository(final Environment environment, final Config config, final EbeanConfig ignored) throws Exception {
+    public DatabaseHostRepository(final Environment environment, final Config config, final EbeanDynamicEvolutions ignored) throws Exception {
         this(
                 ConfigurationHelper.<HostQueryGenerator>getType(
                         environment,

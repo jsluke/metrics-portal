@@ -39,7 +39,7 @@ import models.internal.impl.DefaultAlertQuery;
 import models.internal.impl.DefaultQueryResult;
 import org.joda.time.Period;
 import play.Environment;
-import play.db.ebean.EbeanConfig;
+import play.db.ebean.EbeanDynamicEvolutions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +64,7 @@ public class DatabaseAlertRepository implements AlertRepository {
      * @throws Exception If the configuration is invalid.
      */
     @Inject
-    public DatabaseAlertRepository(final Environment environment, final Config config, final EbeanConfig ignored) throws Exception {
+    public DatabaseAlertRepository(final Environment environment, final Config config, final EbeanDynamicEvolutions ignored) throws Exception {
         this(
                 ConfigurationHelper.<AlertQueryGenerator>getType(
                         environment,

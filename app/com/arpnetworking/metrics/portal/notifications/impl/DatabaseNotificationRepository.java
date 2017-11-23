@@ -37,7 +37,7 @@ import models.internal.impl.DefaultEmailNotificationEntry;
 import models.internal.impl.DefaultNotificationGroupQuery;
 import models.internal.impl.DefaultQueryResult;
 import play.Environment;
-import play.db.ebean.EbeanConfig;
+import play.db.ebean.EbeanDynamicEvolutions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +65,7 @@ public class DatabaseNotificationRepository implements NotificationRepository {
     public DatabaseNotificationRepository(
             final Environment environment,
             final Config config,
-            final EbeanConfig ignored)
+            final EbeanDynamicEvolutions ignored)
             throws Exception {
         this(ConfigurationHelper.<NotificationQueryGenerator>getType(
                         environment,

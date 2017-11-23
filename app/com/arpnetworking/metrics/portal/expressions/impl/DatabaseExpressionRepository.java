@@ -36,7 +36,7 @@ import models.internal.impl.DefaultExpression;
 import models.internal.impl.DefaultExpressionQuery;
 import models.internal.impl.DefaultQueryResult;
 import play.Environment;
-import play.db.ebean.EbeanConfig;
+import play.db.ebean.EbeanDynamicEvolutions;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -60,7 +60,7 @@ public class DatabaseExpressionRepository implements ExpressionRepository {
      * @throws Exception If the configuration is invalid.
      */
     @Inject
-    public DatabaseExpressionRepository(final Environment environment, final Config config, final EbeanConfig ignored) throws Exception {
+    public DatabaseExpressionRepository(final Environment environment, final Config config, final EbeanDynamicEvolutions ignored) throws Exception {
         this(
                 ConfigurationHelper.<ExpressionQueryGenerator>getType(
                         environment,
