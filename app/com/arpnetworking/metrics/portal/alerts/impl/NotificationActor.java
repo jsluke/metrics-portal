@@ -93,8 +93,8 @@ public class NotificationActor extends AbstractPersistentActor {
                         final CompletableFuture<?>[] futureArray = futures.stream()
                                 .map(CompletionStage::toCompletableFuture)
                                 .toArray(CompletableFuture[]::new);
-                        final CompletableFuture<Void> all = CompletableFuture.allOf(futureArray);
-                        all.thenApply(v -> new NotificationsSent(trigger));
+                        final CompletableFuture<NotificationsSent> all = CompletableFuture.allOf(futureArray)
+                                .thenApply(v -> new NotificationsSent(trigger));
                         PatternsCS.pipe(all, context().dispatcher()).to(self());
                     }
                 })
