@@ -96,25 +96,31 @@ public abstract class BaseAlertExecution extends BaseExecution {
         int x = 0;
 
         DateTime last = null;
+        DateTime lastThreshold = null;
         AlertTrigger.Builder alertBuilder = null;
         // We'll lazy create this
         ImmutableMap<String, String> args = null;
+
         while (x < values.size()) {
             // If we have an alert
             final MetricsQueryResponse.DataPoint dataPoint = values.get(x);
             if (evaluateDataPoint(dataPoint)) {
-                // Don't start a new alert unless we are in an OK period
-                if (alertBuilder == null) {
-                    if (args == null) {
-                        args = createArgs(result);
+                if (lastThreshold == null) {
+                    lastThreshold = dataPoint.getTime();
+                } else if (!dataPoint.getTime().minus(_dwellPeriod).isBefore(lastThreshold)) {
+                    // Don't start a new alert unless we are in an OK period
+                    if (alertBuilder == null) {
+                        if (args == null) {
+                            args = createArgs(result);
+                        }
+                        alertBuilder = new AlertTrigger.Builder().setTime(dataPoint.getTime()).setArgs(args);
                     }
-                    alertBuilder = new AlertTrigger.Builder().setTime(dataPoint.getTime()).setArgs(args);
-                }
-                // Consume the range of in-alert points
-                last = dataPoint.getTime();
-                while (x < values.size() && evaluateDataPoint(values.get(x))) {
-                    last = values.get(x).getTime();
-                    x++;
+                    // Consume the range of in-alert points
+                    last = dataPoint.getTime();
+                    while (x < values.size() && evaluateDataPoint(values.get(x))) {
+                        last = values.get(x).getTime();
+                        x++;
+                    }
                 }
             } else {
                 // Check to see if we're far enough past the last bad sample to clear the alert
@@ -124,8 +130,9 @@ public abstract class BaseAlertExecution extends BaseExecution {
                     alertBuilder = null;
                     last = null;
                 }
-                x++;
+                lastThreshold = null;
             }
+            x++;
         }
         // If we still have an alertBuilder, the alert is ongoing, set the end time to the final sample
         if (alertBuilder != null) {
@@ -170,9 +177,11 @@ public abstract class BaseAlertExecution extends BaseExecution {
     protected BaseAlertExecution(final Builder<?, ?> builder) {
         super(builder);
         _recoveryPeriod = builder._recoveryPeriod;
+        _dwellPeriod = builder._dwellPeriod;
     }
 
     private final Period _recoveryPeriod;
+    private final Period _dwellPeriod;
 
     /**
      * Implementation of the Builder pattern for {@link BaseAlertExecution}.
@@ -202,7 +211,22 @@ public abstract class BaseAlertExecution extends BaseExecution {
             return self();
         }
 
+        /**
+         * Sets the dwell period. The threshold conditions must be met for this period of time before an alert is made.
+         * Optional. Cannot be null.
+         *
+         * @param value the recovery period
+         * @return this {@link Builder}
+         */
+        B setDwellPeriod(final Period value) {
+            _dwellPeriod = value;
+            return self();
+        }
+
         @NotNull
         private Period _recoveryPeriod = Period.minutes(0);
+
+        @NotNull
+        private Period _dwellPeriod = Period.minutes(0);
     }
 }
